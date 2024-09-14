@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Colorful Firebase Live Chat</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        #login-container, #chat-container {
+            width: 90%;
+            max-width: 400px;
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        #login-container {
+            padding: 30px;
+            text-align: center;
+        }
+        #login-form input {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: 2px solid #dfe6e9;
+            border-radius: 30px;
+            font-size: 16px;
+            outline: none;
+        }
+        #login-form button {
+            width: 100%;
+            padding: 12px;
+            background-color: #6c5ce7;
+            color: white;
+            border: none;
+            border-radius: 30px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        #login-form button:hover {
+            background-color: #5b4cdb;
+        }
+        #chat-header {
+            background-color: #4a69bd;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        #online-users {
+            font-size: 14px;
+        }
+        #chat-messages {
+            height: 400px;
+            overflow-y: auto;
+            padding: 20px;
+            background-color: #f1f2f6;
+        }
+        .message {
+            margin-bottom: 15px;
+            padding: 10px 15px;
+            border-radius: 18px;
+            max-width: 80%;
+            animation: fadeIn 0.3s ease-in-out;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            position: relative;
+        }
+        .message .timestamp {
+            font-size: 10px;
+            color: #7f8c8d;
+            position: absolute;
+            bottom: -15px;
+            right: 5px;
+        }
+        .sent {
+            background-color: #55efc4;
+            color: #2d3436;
+            align-self: flex-end;
+            margin-left: auto;
+        }
+        .received {
+            background-color: #74b9ff;
+            color: #2d3436;
+        }
+        #message-form {
+            display: flex;
+            padding: 20px;
+            background-color: white;
+        }
+        #message-input {
+            flex-grow: 1;
+            padding: 12px;
+            border: 2px solid #dfe6e9;
+            border-radius: 30px;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        #message-input:focus {
+            border-color: #6c5ce7;
+        }
+        #send-button {
+            padding: 12px 25px;
+            background-color: #6c5ce7;
+            color: white;
+            border: none;
+            border-radius: 30px;
+            margin-left: 10px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.1s;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        #send-button:hover {
+            background-color: #5b4cdb;
+        }
+        #send-button:active {
+            transform: scale(0.95);
+        }
+        #emoji-picker {
+            position: absolute;
+            bottom: 70px;
+            right: 20px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            display: none;
+        }
+        #emoji-picker.active {
+            display: block;
+        }
+        #emoji-button {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+    </style>
+</head>
+<body>
+    <div id="login-container">
+        <h2>Join the Chat</h2>
+        <form id="login-form">
+            <input type="text" id="username-input" placeholder="Enter your name" required>
+            <button type="submit">Join Chat</button>
+        </form>
+    </div>
+
+    <div id="chat-container" style="display: none;">
+        <div id="chat-header">
+            <span>Live Chat</span>
+            <span id="online-users">Online: 1</span>
+        </div>
+        <div id="chat-messages"></div>
+        <form id="message-form">
+            <button type="button" id="emoji-button">😊</button>
+            <input type="text" id="message-input" placeholder="Type a message..." required>
+            <button type="submit" id="send-button">Send</button>
+        </form>
+        <div id="emoji-picker"></div>
+    </div>
+
+    <!-- Firebase App (the core Firebase SDK) is always required and must be listed first -->
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-app.js"></script>
+
+    <!-- Add Firebase products that you want to use -->
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-database.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/@joeattardi/emoji-button@3.1.1/dist/index.min.js"></script>
+
+    <script>
+        // Your web app's Firebase const firebaseConfig = {
+const firebaseConfig = {
+  apiKey: "AIzaSyAD5SF1DasBfem-RoEj8n6CG_bFVoq0HmE",
+  authDomain: "data1-eb6ac.firebaseapp.com",
+  databaseURL: "https://data1-eb6ac-default-rtdb.firebaseio.com",
+  projectId: "data1-eb6ac",
+  storageBucket: "data1-eb6ac.appspot.com",
+  messagingSenderId: "20155702088",
+  appId: "1:20155702088:web:e1cd9552e5906607e4b17d"
+};
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+
+        // Get a reference to the database service
+        const database = firebase.database();
+
+        // Get DOM elements
+        const loginContainer = document.getElementById('login-container');
+        const chatContainer = document.getElementById('chat-container');
+        const loginForm = document.getElementById('login-form');
+        const usernameInput = document.getElementById('username-input');
+        const chatMessages = document.getElementById('chat-messages');
+        const messageForm = document.getElementById('message-form');
+        const messageInput = document.getElementById('message-input');
+        const onlineUsers = document.getElementById('online-users');
+        const emojiButton = document.getElementById('emoji-button');
+        const emojiPicker = document.getElementById('emoji-picker');
+
+        let username = '';
+
+        // Emoji picker setup
+        const picker = new EmojiButton();
+        picker.on('emoji', emoji => {
+            messageInput.value += emoji;
+        });
+
+        emojiButton.addEventListener('click', () => {
+            picker.togglePicker(emojiButton);
+        });
+
+        // Listen for login form submit
+        loginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            username = usernameInput.value.trim();
+            if (username) {
+                loginContainer.style.display = 'none';
+                chatContainer.style.display = 'block';
+                loadMessages();
+                updateOnlineUsers(true);
+            }
+        });
+
+        // Listen for message form submit
+        messageForm.addEventListener('submit', sendMessage);
+
+        // Send message to Firebase
+        function sendMessage(e) {
+            e.preventDefault();
+            
+            // Get message
+            const message = messageInput.value;
+            
+            // Clear input
+            messageInput.value = '';
+            
+            //Save in Firebase
+            database.ref('messages').push().set({
+                username: username,
+                message: message,
+                timestamp: firebase.database.ServerValue.TIMESTAMP
+            });
+        }
+
+        // Load and listen for messages from Firebase
+        function loadMessages() {
+            database.ref('messages').on('child_added', (snapshot) => {
+                const message = snapshot.val();
+                displayMessage(message);
+            });
+        }
+
+        // Display message in chat
+        function displayMessage(message) {
+            const div = document.createElement('div');
+            const timestamp = new Date(message.timestamp);
+            div.innerHTML = `
+                <strong>${message.username}</strong>: ${message.message}
+                <span class="timestamp">${timestamp.toLocaleTimeString()}</span>
+            `;
+            div.classList.add('message');
+            
+            // Assign sent or received class
+            div.classList.add(message.username === username ? 'sent' : 'received');
+            
+            chatMessages.appendChild(div);
+            
+            // Scroll to bottom of chat
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Update online users count
+        function updateOnlineUsers(isOnline) {
+            const userRef = database.ref('online/' + username);
+            if (isOnline) {
+                userRef.set(true);
+                userRef.onDisconnect().remove();
+            } else {
+                userRef.remove();
+            }
+
+            database.ref('online').on('value', (snapshot) => {
+                const count = snapshot.numChildren();
+                onlineUsers.textContent = `Online: ${count}`;
+            });
+        }
+
+        // Handle window close
+        window.addEventListener('beforeunload', () => {
+            updateOnlineUsers(false);
+        });
+    </script>
+</body>
+</html>
